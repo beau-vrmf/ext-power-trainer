@@ -12,9 +12,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'Ext Power Trainer',
-        short_name: 'ExtPwrTrain',
-        description: 'External power fault isolation training for aircraft maintenance',
+        name: 'FIaD-T',
+        short_name: 'FIaD-T',
+        description: 'Fault isolation and diagnosis training for aircraft maintenance',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',
