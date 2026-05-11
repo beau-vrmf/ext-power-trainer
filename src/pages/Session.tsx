@@ -164,6 +164,7 @@ export function Session() {
       <div className="flex-1 flex flex-col gap-4 px-4 py-5">
         {block.imageRef && (
           <img
+            key={block.id}
             src={block.imageRef}
             alt={`Training image for block ${block.blockNumber}`}
             className="w-full rounded-lg border border-slate-700 object-contain max-h-72 bg-slate-800"
