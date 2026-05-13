@@ -6,6 +6,7 @@ import { archiveSession } from '../db/sessions'
 import { Timer } from '../components/Timer'
 import { NoteDialog } from '../components/NoteDialog'
 import { CameraCapture } from '../components/CameraCapture'
+import { ManualView } from '../components/ManualView'
 
 export function Session() {
   const navigate = useNavigate()
@@ -19,6 +20,7 @@ export function Session() {
   const resume = useSession((s) => s.resume)
 
   const [noteOpen, setNoteOpen] = useState(false)
+  const [manualOpen, setManualOpen] = useState(false)
   // Deduction toast: shows "-10 pts" briefly after a wrong answer
   const [deductionFlash, setDeductionFlash] = useState(false)
   const deductionTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -192,6 +194,13 @@ export function Session() {
           </div>
         )}
 
+        <button
+          onClick={() => setManualOpen(true)}
+          className="w-full px-4 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 hover:text-sky-200 font-medium text-sm border border-slate-700 hover:border-slate-600 transition-colors"
+        >
+          📋 View Manual
+        </button>
+
         <div className="flex flex-wrap gap-3 mt-2">
           <button
             onClick={() => setNoteOpen(true)}
@@ -253,6 +262,13 @@ export function Session() {
         initial={step?.note}
         onClose={() => setNoteOpen(false)}
         onSave={(note) => setNote(note)}
+      />
+
+      <ManualView
+        open={manualOpen}
+        onClose={() => setManualOpen(false)}
+        currentBlockId={active.currentBlockId}
+        steps={active.steps}
       />
     </div>
   )
