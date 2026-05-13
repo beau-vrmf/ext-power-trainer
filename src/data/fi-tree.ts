@@ -1,7 +1,7 @@
 // Fault Isolation training data — C-130 Electrical System
 // Fault Code: 240115 — Aircraft will not accept external power.
 // Source: Figure 3-7 (verbatim from Technical Order)
-// Correct training path terminates at Block 181 (circuit breaker was pulled open).
+// Correct training path terminates at Block 182 (circuit breaker was pulled open).
 
 export type Outcome = {
   kind: 'resolved' | 'escalate'
@@ -68,85 +68,89 @@ export const faultCodes: FaultCode[] = [
 ]
 
 // ── Decision tree — Figure 3-7 ─────────────────────────────────────────────
-// Correct training path: 167(NO)→168(YES)→169(NO)→170(NO)→171(YES)→180(YES)→181
+// Correct training path: 167(NO)→168(YES)→169(NO)→170(NO)→171(YES)→180(YES)→182
 
 const _blocks: Block[] = [
   block('167', {
-    text: 'In flight station, does external power available indicator illuminated?',
+    text: 'In flight station, observe EXTERNAL POWER AVAIL indicator. Is indicator illuminated?',
     correctAnswer: 'no',
     onYes: bid('172'),
     onNo: bid('168'),
   }),
   block('168', {
-    text: 'Is power cart contact light illuminated?',
+    text: 'On power cart, observe CONTACT light. Is CONTACT light illuminated?',
     correctAnswer: 'yes',
     onYes: bid('169'),
     onNo: bid('175'),
   }),
   block('169', {
-    text: 'Shut down external power source. Is contamination present in connector pins?',
+    text: 'a. Shut down external power source. b. Disconnect power cable and inspect connector pins. Is contamination present on connector pins?',
     correctAnswer: 'no',
     onYes: bid('178'),
     onNo: bid('170'),
   }),
   block('170', {
-    text: 'Reseat power cable plug. Attempt to apply power IAW Figure 3-1, Preparation A. Did aircraft accept external power?',
+    text: 'a. Reseat power cable plug. b. Apply external power in accordance with Figure 3-1, Preparation A. Did aircraft accept external power?',
     correctAnswer: 'no',
     onYes: bid('179'),
     onNo: bid('171'),
   }),
   block('171', {
-    text: 'Is battery compartment circuit breaker pulled open?',
+    text: 'Inspect battery compartment circuit breaker. Is battery compartment circuit breaker pulled open?',
     correctAnswer: 'yes',
     onYes: bid('180'),
-    onNo: bid('182'),
+    onNo: bid('181'),
   }),
   block('172', {
-    text: 'Check for 28 VDC to aircraft power switch. Is 28 VDC available?',
+    text: 'Using multimeter, check for 28 VDC at aircraft power switch. Is 28 VDC present at aircraft power switch?',
     onYes: bid('173'),
     onNo: bid('174'),
   }),
   block('173', {
-    text: 'Replace aircraft power switch.',
+    text: 'Fault is in aircraft power switch. Replace aircraft power switch in accordance with applicable maintenance procedures.',
     terminalKind: 'resolved',
   }),
   block('174', {
-    text: 'Fault is in the wiring. Refer to wiring diagrams, and troubleshoot further.',
+    text: 'Fault is in aircraft power wiring. Refer to applicable wiring diagrams and continue troubleshooting.',
     terminalKind: 'escalate',
   }),
   block('175', {
-    text: 'Shut down power unit. Reattempt generator start in accordance with generator operating instructions. Did contact light illuminate?',
+    text: 'a. Shut down external power unit. b. Reattempt generator start in accordance with generator operating instructions. Did CONTACT light illuminate?',
     onYes: bid('176'),
     onNo: bid('177'),
   }),
   block('176', {
-    text: 'No further troubleshooting required. Fault was a bad generator start.',
+    text: 'Bad generator start caused malfunction. No further troubleshooting required.',
     terminalKind: 'resolved',
   }),
   block('177', {
-    text: 'Fault is in external power generator. Refer to applicable maintenance procedures.',
+    text: 'Fault is in external power generator. Refer to applicable generator maintenance procedures and continue troubleshooting.',
     terminalKind: 'escalate',
   }),
   block('178', {
-    text: 'Clean connector pins with approved solvents. No further troubleshooting required.',
+    text: 'Contamination on connector pins caused malfunction. Clean connector pins with approved solvents. No further troubleshooting required.',
     terminalKind: 'resolved',
   }),
   block('179', {
-    text: 'No further troubleshooting required. Connector plug was not fully seated.',
+    text: 'Unseated connector plug caused malfunction. No further troubleshooting required.',
     terminalKind: 'resolved',
   }),
   block('180', {
-    text: 'Close circuit breaker. Attempt to apply power IAW Figure 3-1, Preparation A. Did aircraft accept external power?',
+    text: 'a. Close battery compartment circuit breaker. b. Apply external power in accordance with Figure 3-1, Preparation A. Did aircraft accept external power?',
     correctAnswer: 'yes',
-    onYes: bid('181'),
-    onNo: bid('182'),
+    onYes: bid('182'),
+    onNo: bid('183'),
   }),
   block('181', {
-    text: 'No further troubleshooting is required.',
-    terminalKind: 'resolved',
+    text: 'Fault is in aircraft power wiring. Refer to applicable wiring diagrams and continue troubleshooting.',
+    terminalKind: 'escalate',
   }),
   block('182', {
-    text: 'Fault is in the wiring. Refer to wiring diagrams, and troubleshoot further.',
+    text: 'Open battery compartment circuit breaker caused malfunction. No further troubleshooting required.',
+    terminalKind: 'resolved',
+  }),
+  block('183', {
+    text: 'Fault is in aircraft power wiring. Refer to applicable wiring diagrams and continue troubleshooting.',
     terminalKind: 'escalate',
   }),
 ]
