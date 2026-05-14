@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { totalElapsedMs, useSession } from '../store/session'
 import { getBlock } from '../data/fi-tree'
+import { ManualDiagram } from '../components/ManualDiagram'
 
 function fmtDuration(ms: number): string {
   const s = Math.floor(ms / 1000)
@@ -109,46 +110,13 @@ export function Outcome() {
         </section>
       )}
 
-      {/* Path walked */}
+      {/* Path walked — flowchart diagram */}
       <section>
-        <h2 className="text-lg font-semibold mb-2">Path Walked</h2>
-        <ol className="space-y-2">
-          {active.steps.map((step, i) => {
-            const b = getBlock(step.blockId)
-            const wrong = step.wasCorrect === false
-            return (
-              <li
-                key={i}
-                className={`rounded-lg p-3 ${wrong ? 'bg-rose-900/20 border border-rose-700/40' : 'bg-slate-800'}`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-slate-300">
-                    Block {b?.blockNumber ?? step.blockId.split('/').pop()}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    {wrong && <span className="text-xs text-rose-400">✗ wrong</span>}
-                    {step.answer && (
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded ${
-                          step.answer === 'yes' ? 'bg-emerald-700 text-emerald-50' : 'bg-rose-700 text-rose-50'
-                        }`}
-                      >
-                        {step.answer.toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {b && <p className="text-sm text-slate-300 mt-1 line-clamp-2 whitespace-pre-wrap">{b.text}</p>}
-                {step.note && (
-                  <p className="text-sm italic text-slate-200 mt-2 border-l-2 border-slate-600 pl-3">{step.note}</p>
-                )}
-                {step.photoIds.length > 0 && (
-                  <p className="text-xs text-slate-400 mt-1">📷 {step.photoIds.length} photo{step.photoIds.length === 1 ? '' : 's'}</p>
-                )}
-              </li>
-            )
-          })}
-        </ol>
+        <h2 className="text-lg font-semibold mb-3">Path Walked</h2>
+        <ManualDiagram
+          steps={active.steps}
+          incorrectDecisions={active.incorrectDecisions}
+        />
       </section>
 
       <button
