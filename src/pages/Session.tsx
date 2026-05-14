@@ -269,6 +269,7 @@ export function Session() {
         onClose={() => setManualOpen(false)}
         currentBlockId={active.currentBlockId}
         steps={active.steps}
+        incorrectDecisions={active.incorrectDecisions}
       />
     </div>
   )

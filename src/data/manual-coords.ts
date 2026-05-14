@@ -24,7 +24,7 @@ export const blockCoords: BlockCoord[] = [
   { blockNumber: '178', sheet: 1, x: 38.383, y: 57.394, w: 28.200, h: 11.394 },
   { blockNumber: '170', sheet: 1, x:  4.534, y: 76.430, w: 27.339, h: 11.394 },
   { blockNumber: '179', sheet: 1, x: 38.535, y: 77.650, w: 28.200, h:  9.022 },
-  { blockNumber: '175', sheet: 1, x: 42.505, y: 80.777, w: 28.200, h: 12.552 },
+  { blockNumber: '175', sheet: 1, x: 38.538, y: 31.580, w: 28.199, h: 14.796 },
 
   // ── Sheet 2 (sheet-124.png) ────────────────────────────────────────────────
   { blockNumber: '171', sheet: 2, x:  4.534, y: 12.648, w: 37.803, h: 11.394 },

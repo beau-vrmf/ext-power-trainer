@@ -1,34 +1,42 @@
 import { useState } from 'react'
 import { blockCoords, sheetForBlock } from '../data/manual-coords'
-import type { StepRecord } from '../store/session'
+import type { IncorrectDecision, StepRecord } from '../store/session'
 
 type Props = {
   open: boolean
   onClose: () => void
   currentBlockId: string  // e.g. "TO-EXTPWR/3-7/1/167"
   steps: StepRecord[]
+  incorrectDecisions: IncorrectDecision[]
 }
 
-export function ManualView({ open, onClose, currentBlockId, steps }: Props) {
+export function ManualView({ open, onClose, currentBlockId, steps, incorrectDecisions }: Props) {
   const currentBlockNumber = currentBlockId.split('/').at(-1) ?? ''
   const [sheet, setSheet] = useState<1 | 2>(() => sheetForBlock(currentBlockNumber))
 
   if (!open) return null
 
-  // Build blockNumber → overlay color from session history
+  // Build blockNumber → overlay color.
+  // Pass 1: mark every block where user ever gave a wrong answer (red).
+  //         These persist even after goBack() since incorrectDecisions is never truncated.
   const colorMap: Record<string, string> = {}
+  for (const id of incorrectDecisions) {
+    const bn = id.blockId.split('/').at(-1) ?? ''
+    colorMap[bn] = 'rgba(239,68,68,0.55)'
+  }
+  // Pass 2: overlay the current path — always takes priority over historical red.
   for (const step of steps) {
     const bn = step.blockId.split('/').at(-1) ?? ''
     if (step.answer === null) {
       // Current block — not yet answered
-      colorMap[bn] = 'rgba(250,204,21,0.5)'
+      colorMap[bn] = 'rgba(250,204,21,0.55)'
     } else if (step.wasCorrect === true) {
-      colorMap[bn] = 'rgba(34,197,94,0.5)'
+      colorMap[bn] = 'rgba(34,197,94,0.55)'
     } else if (step.wasCorrect === false) {
-      colorMap[bn] = 'rgba(239,68,68,0.5)'
+      colorMap[bn] = 'rgba(239,68,68,0.55)'
     } else {
       // Terminal block visited (no correctAnswer scoring) — neutral highlight
-      colorMap[bn] = 'rgba(148,163,184,0.4)'
+      colorMap[bn] = 'rgba(148,163,184,0.45)'
     }
   }
 
@@ -107,13 +115,14 @@ export function ManualView({ open, onClose, currentBlockId, steps }: Props) {
             .map(bc => (
               <div
                 key={bc.blockNumber}
-                className="absolute pointer-events-none rounded-sm"
+                className="absolute pointer-events-none"
                 style={{
-                  left:            `${bc.x}%`,
-                  top:             `${bc.y}%`,
-                  width:           `${bc.w}%`,
-                  height:          `${bc.h}%`,
+                  left:            `${bc.x + bc.w * 0.06}%`,
+                  top:             `${bc.y + bc.h * 0.06}%`,
+                  width:           `${bc.w * 0.88}%`,
+                  height:          `${bc.h * 0.88}%`,
                   backgroundColor: colorMap[bc.blockNumber],
+                  borderRadius:    '12%',
                   mixBlendMode:    'multiply',
                 }}
               />
