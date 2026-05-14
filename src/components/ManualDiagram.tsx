@@ -1,54 +1,69 @@
 import { useState } from 'react'
+import { getBlock } from '../data/fi-tree'
 import { blockCoords, sheetForBlock } from '../data/manual-coords'
 import type { IncorrectDecision, StepRecord } from '../store/session'
 
-/**
- * Shared inner diagram: flowchart PNG with colored block overlays.
- * Used both inside the ManualView modal (during a session) and
- * inline on the Outcome page (after completion).
- *
- * terminalBlockId — when provided (outcome page), the block with
- *   answer===null is treated as the resolved destination (sky blue)
- *   rather than the "current unanswered" (yellow).
- */
 type Props = {
   steps: StepRecord[]
   incorrectDecisions: IncorrectDecision[]
-  /** Highlight the block at this ID as the current/active step (yellow).
-   *  Pass undefined on the outcome page so the terminal block renders sky. */
+  /** Pass during a live session so the unanswered block shows yellow.
+   *  Omit on the outcome page — terminal block renders sky blue. */
   currentBlockId?: string
 }
 
-export function ManualDiagram({ steps, incorrectDecisions, currentBlockId }: Props) {
-  const currentBN = currentBlockId?.split('/').at(-1) ?? ''
+// ── Style palette ─────────────────────────────────────────────────────────────
+// Each entry: translucent fill + solid border (rendered via CSS border)
+const S = {
+  current:      { fill: 'rgba(250,204,21,0.12)',  border: 'rgba(250,204,21,1)'   },
+  destination:  { fill: 'rgba(56,189,248,0.12)',  border: 'rgba(56,189,248,1)'   },
+  correct:      { fill: 'rgba(34,197,94,0.12)',   border: 'rgba(34,197,94,1)'    },
+  incorrect:    { fill: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,1)'    },
+  wrongVisited: { fill: 'rgba(251,146,60,0.10)',  border: 'rgba(251,146,60,1)'   },
+  terminal:     { fill: 'rgba(148,163,184,0.10)', border: 'rgba(148,163,184,0.8)'},
+} as const
 
-  // Default sheet: whichever sheet the last step lives on
+type BlockStyle = typeof S[keyof typeof S]
+
+export function ManualDiagram({ steps, incorrectDecisions, currentBlockId }: Props) {
   const lastBN = steps.at(-1)?.blockId.split('/').at(-1) ?? ''
+  const currentBN = currentBlockId?.split('/').at(-1) ?? ''
   const [sheet, setSheet] = useState<1 | 2>(() => sheetForBlock(lastBN || currentBN || '167'))
 
-  // ── Color map ──────────────────────────────────────────────────────────────
-  // Pass 1: blocks in incorrectDecisions → red (persist across goBack)
-  const colorMap: Record<string, string> = {}
+  // ── Build colorMap ───────────────────────────────────────────────────────────
+  const colorMap: Record<string, BlockStyle> = {}
+
+  // Pass 1 — incorrectDecisions: mark the block where user answered wrong (red)
+  // AND the immediate next block they landed on due to that wrong answer (orange).
+  // The downstream block is pruned from `steps` by goBack() so it won't appear
+  // in Pass 2 — this is the only place it gets tracked.
   for (const id of incorrectDecisions) {
     const bn = id.blockId.split('/').at(-1) ?? ''
-    colorMap[bn] = 'rgba(239,68,68,0.55)'
+    colorMap[bn] = S.incorrect
+
+    const block = getBlock(id.blockId)
+    if (block) {
+      const wrongNext = id.userAnswer === 'yes' ? block.onYes : block.onNo
+      if (typeof wrongNext === 'string') {
+        const wrongNextBN = wrongNext.split('/').at(-1) ?? ''
+        // Only set if not already marked (don't clobber a correct-path block)
+        if (!colorMap[wrongNextBN]) {
+          colorMap[wrongNextBN] = S.wrongVisited
+        }
+      }
+    }
   }
-  // Pass 2: current path always wins
+
+  // Pass 2 — current path always wins over Pass 1
   for (const step of steps) {
     const bn = step.blockId.split('/').at(-1) ?? ''
     if (step.answer === null) {
-      // During session: yellow if this is the live current block;
-      // after completion: sky blue for the terminal destination.
-      colorMap[bn] = currentBlockId
-        ? 'rgba(250,204,21,0.55)'   // yellow — unanswered / current
-        : 'rgba(56,189,248,0.55)'   // sky   — terminal destination
+      colorMap[bn] = currentBlockId ? S.current : S.destination
     } else if (step.wasCorrect === true) {
-      colorMap[bn] = 'rgba(34,197,94,0.55)'
+      colorMap[bn] = S.correct
     } else if (step.wasCorrect === false) {
-      colorMap[bn] = 'rgba(239,68,68,0.55)'
+      colorMap[bn] = S.incorrect
     } else {
-      // Answered but no correctAnswer on block (terminal blocks answered via completeTerminal)
-      colorMap[bn] = 'rgba(148,163,184,0.45)'
+      colorMap[bn] = S.terminal
     }
   }
 
@@ -56,10 +71,12 @@ export function ManualDiagram({ steps, incorrectDecisions, currentBlockId }: Pro
     ? '/figures/manual/sheet-123.png'
     : '/figures/manual/sheet-124.png'
 
+  const hasWrongVisited = Object.values(colorMap).includes(S.wrongVisited)
+
   return (
     <div className="flex flex-col gap-0">
       {/* Sheet toggle + legend */}
-      <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+      <div className="flex items-center justify-between flex-wrap gap-x-4 gap-y-2 mb-2">
         <div className="flex rounded-md overflow-hidden border border-slate-600 text-xs">
           <button
             onClick={() => setSheet(1)}
@@ -79,27 +96,17 @@ export function ManualDiagram({ steps, incorrectDecisions, currentBlockId }: Pro
           </button>
         </div>
 
-        <div className="flex gap-3 text-xs text-slate-300">
-          {currentBlockId && (
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: 'rgba(250,204,21,0.9)' }} />
-              Current
-            </span>
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-300">
+          {currentBlockId ? (
+            <LegendSwatch style={S.current}   label="Current"     />
+          ) : (
+            <LegendSwatch style={S.destination} label="Destination" />
           )}
-          {!currentBlockId && (
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: 'rgba(56,189,248,0.9)' }} />
-              Destination
-            </span>
+          <LegendSwatch style={S.correct}   label="Correct"   />
+          <LegendSwatch style={S.incorrect} label="Incorrect"  />
+          {hasWrongVisited && (
+            <LegendSwatch style={S.wrongVisited} label="Wrong path" />
           )}
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: 'rgba(34,197,94,0.9)' }} />
-            Correct
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: 'rgba(239,68,68,0.9)' }} />
-            Incorrect
-          </span>
         </div>
       </div>
 
@@ -114,23 +121,43 @@ export function ManualDiagram({ steps, incorrectDecisions, currentBlockId }: Pro
         />
         {blockCoords
           .filter(bc => bc.sheet === sheet && colorMap[bc.blockNumber])
-          .map(bc => (
-            <div
-              key={bc.blockNumber}
-              className="absolute pointer-events-none"
-              style={{
-                left:            `${bc.x + bc.w * 0.06}%`,
-                top:             `${bc.y + bc.h * 0.06}%`,
-                width:           `${bc.w * 0.88}%`,
-                height:          `${bc.h * 0.88}%`,
-                backgroundColor: colorMap[bc.blockNumber],
-                borderRadius:    '12%',
-                mixBlendMode:    'multiply',
-              }}
-            />
-          ))
+          .map(bc => {
+            const style = colorMap[bc.blockNumber]
+            return (
+              <div
+                key={bc.blockNumber}
+                className="absolute pointer-events-none"
+                style={{
+                  left:            `${bc.x}%`,
+                  top:             `${bc.y}%`,
+                  width:           `${bc.w}%`,
+                  height:          `${bc.h}%`,
+                  backgroundColor: style.fill,
+                  border:          `3px solid ${style.border}`,
+                  borderRadius:    '10%',
+                  boxSizing:       'border-box',
+                }}
+              />
+            )
+          })
         }
       </div>
     </div>
+  )
+}
+
+function LegendSwatch({ style, label }: { style: BlockStyle; label: string }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span
+        className="inline-block w-4 h-4 rounded-sm"
+        style={{
+          backgroundColor: style.fill,
+          border:          `2px solid ${style.border}`,
+          boxSizing:       'border-box',
+        }}
+      />
+      {label}
+    </span>
   )
 }
